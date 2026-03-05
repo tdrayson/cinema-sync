@@ -28,6 +28,8 @@ export function useMovieSearch() {
     }
   }
 
+  fetchPopular()
+
   watch(query, (val) => {
     clearTimeout(debounceTimer)
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, computed } from 'vue'
 import { useCinema } from '../composables/useCinema.js'
+import { chainIcon } from '../utils/assets.js'
 import DatePicker from './DatePicker.vue'
 
 const emit = defineEmits(['add-films'])
@@ -102,9 +103,6 @@ function toggleShowtime(film, cs, st) {
   selectedShowtimes.value = next
 }
 
-function chainIcon(chain) {
-  return chain === 'vue' ? '/icons/vue.png' : '/icons/cineworld.svg'
-}
 
 function openStep1() {
   step.value = 1
@@ -286,7 +284,7 @@ watch(showModal, async (val) => {
                   ? 'border-ink bg-ink text-cream'
                   : 'border-border text-ink-lighter hover:border-ink hover:text-ink'"
               >
-                <img src="/icons/vue.png" alt="Vue" class="max-w-3.5 max-h-3.5 aspect-square rounded shrink-0" />
+                <img :src="chainIcon('vue')" alt="Vue" class="max-w-3.5 max-h-3.5 aspect-square rounded shrink-0" />
                 Vue
               </button>
               <button
@@ -296,7 +294,7 @@ watch(showModal, async (val) => {
                   ? 'border-ink bg-ink text-cream'
                   : 'border-border text-ink-lighter hover:border-ink hover:text-ink'"
               >
-                <img src="/icons/cineworld.svg" alt="Cineworld" class="max-w-3.5 max-h-3.5 aspect-square rounded shrink-0" />
+                <img :src="chainIcon('cineworld')" alt="Cineworld" class="max-w-3.5 max-h-3.5 aspect-square rounded shrink-0" />
                 Cineworld
               </button>
             </div>

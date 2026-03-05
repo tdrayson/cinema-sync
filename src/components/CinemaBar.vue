@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useCinema } from '../composables/useCinema.js'
+import { chainIcon } from '../utils/assets.js'
 
 const { selectedCinemas, selectedDate, isActive, showModal, clear } = useCinema()
 
@@ -27,7 +28,7 @@ const cinemaLabel = computed(() => {
         <img
           v-for="cinema in selectedCinemas.slice(0, 3)"
           :key="cinema.id"
-          :src="cinema.chain === 'vue' ? '/icons/vue.png' : '/icons/cineworld.svg'"
+          :src="chainIcon(cinema.chain)"
           :alt="cinema.chain"
           class="max-w-5 max-h-5 aspect-square rounded border border-cream bg-white"
         />

@@ -6,13 +6,12 @@ import { useMovieSearch } from '../composables/useMovieSearch.js'
 import { useComparison } from '../composables/useComparison.js'
 import { useCinema } from '../composables/useCinema.js'
 
-const { query, results, popular, loading, fetchPopular } = useMovieSearch()
+const { query, results, popular, loading } = useMovieSearch()
 const { addMovie, sortOrder, movies, clearMovies } = useComparison()
 const { showModal: showCinema } = useCinema()
 const open = ref(false)
 const searchInput = ref(null)
 const container = ref(null)
-let justSelected = false
 const showClearConfirm = ref(false)
 const showPanel = ref(false)
 
@@ -38,12 +37,7 @@ const dropdownLabel = computed(() => {
 })
 
 function onFocus() {
-  if (justSelected) {
-    justSelected = false
-    return
-  }
   open.value = true
-  fetchPopular()
 }
 
 function onFocusOut(e) {
@@ -53,7 +47,6 @@ function onFocusOut(e) {
 
 function openSearch() {
   open.value = true
-  fetchPopular()
   nextTick(() => searchInput.value?.focus())
 }
 
@@ -61,8 +54,6 @@ function onSelect(tmdbId) {
   addMovie(tmdbId)
   query.value = ''
   results.value = []
-  open.value = false
-  justSelected = true
   searchInput.value?.focus()
 }
 

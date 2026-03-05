@@ -1,8 +1,10 @@
+import { asset } from './assets.js'
+
 const SOURCE_CONFIG = {
   TMDB: { label: 'TMDB', icon: null, color: 'bar' },
-  'Internet Movie Database': { label: 'IMDB', icon: '/icons/imdb.jpg', color: 'bar' },
-  'Rotten Tomatoes': { label: 'Rotten Tomatoes', icon: '/icons/rotten-tomatoes.png', color: 'bar-rt' },
-  Metacritic: { label: 'Metacritic', icon: '/icons/metacritic.png', color: 'bar' },
+  'Internet Movie Database': { label: 'IMDB', icon: asset('icons/imdb.jpg'), color: 'bar' },
+  'Rotten Tomatoes': { label: 'Rotten Tomatoes', icon: asset('icons/rotten-tomatoes.png'), color: 'bar-rt' },
+  Metacritic: { label: 'Metacritic', icon: asset('icons/metacritic.png'), color: 'bar' },
 }
 
 function parseOmdbValue(source, value) {
@@ -38,14 +40,14 @@ export function normalizeRatings(tmdbVoteAverage, omdbRatings = []) {
 
   const ratings = [
     imdb
-      ? { source: 'Internet Movie Database', label: 'IMDB', icon: '/icons/imdb.jpg', score: imdb.score, display: imdb.display, color: 'bar' }
-      : { source: 'Internet Movie Database', label: 'IMDB', icon: '/icons/imdb.jpg', score: null, display: 'N/A', color: 'bar' },
+      ? { source: 'Internet Movie Database', label: 'IMDB', icon: asset('icons/imdb.jpg'), score: imdb.score, display: imdb.display, color: 'bar' }
+      : { source: 'Internet Movie Database', label: 'IMDB', icon: asset('icons/imdb.jpg'), score: null, display: 'N/A', color: 'bar' },
     rt
-      ? { source: 'Rotten Tomatoes', label: 'Rotten Tomatoes', icon: '/icons/rotten-tomatoes.png', score: rt.score, display: rt.display, color: 'bar-rt' }
-      : { source: 'Rotten Tomatoes', label: 'Rotten Tomatoes', icon: '/icons/rotten-tomatoes.png', score: null, display: 'N/A', color: 'bar-rt' },
+      ? { source: 'Rotten Tomatoes', label: 'Rotten Tomatoes', icon: asset('icons/rotten-tomatoes.png'), score: rt.score, display: rt.display, color: 'bar-rt' }
+      : { source: 'Rotten Tomatoes', label: 'Rotten Tomatoes', icon: asset('icons/rotten-tomatoes.png'), score: null, display: 'N/A', color: 'bar-rt' },
     mc
-      ? { source: 'Metacritic', label: 'Metacritic', icon: '/icons/metacritic.png', score: mc.score, display: mc.display, color: 'bar' }
-      : { source: 'Metacritic', label: 'Metacritic', icon: '/icons/metacritic.png', score: null, display: 'N/A', color: 'bar' },
+      ? { source: 'Metacritic', label: 'Metacritic', icon: asset('icons/metacritic.png'), score: mc.score, display: mc.display, color: 'bar' }
+      : { source: 'Metacritic', label: 'Metacritic', icon: asset('icons/metacritic.png'), score: null, display: 'N/A', color: 'bar' },
   ]
 
   const scored = ratings.filter((r) => r.score !== null)

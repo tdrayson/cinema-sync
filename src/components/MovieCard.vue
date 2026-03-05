@@ -1,6 +1,7 @@
 <script setup>
 import { inject } from 'vue'
 import RatingDisplay from './RatingDisplay.vue'
+import { chainIcon } from '../utils/assets.js'
 
 import { computed } from 'vue'
 
@@ -130,7 +131,7 @@ const openTrailer = inject('openTrailer')
         <div v-for="group in groupedShowtimes" :key="group.cinema">
           <div class="flex items-center gap-1.5 mb-1.5">
             <img
-              :src="group.chain === 'vue' ? '/icons/vue.png' : '/icons/cineworld.svg'"
+              :src="chainIcon(group.chain)"
               :alt="group.chain"
               class="max-w-4 max-h-4 aspect-square rounded shrink-0"
             />
