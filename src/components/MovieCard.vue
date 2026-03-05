@@ -1,5 +1,5 @@
 <script setup>
-import { inject } from 'vue'
+import { inject, ref } from 'vue'
 import RatingDisplay from './RatingDisplay.vue'
 import { chainIcon } from '../utils/assets.js'
 
@@ -43,6 +43,7 @@ const groupedShowtimes = computed(() => {
 
 const emit = defineEmits(['remove'])
 const openTrailer = inject('openTrailer')
+const synopsisExpanded = ref(false)
 </script>
 
 <template>
@@ -67,6 +68,7 @@ const openTrailer = inject('openTrailer')
         :src="movie.posterUrl"
         :alt="movie.title"
         class="w-full aspect-[2/3] object-cover"
+        @error="movie.posterUrl = null"
       />
       <div
         v-else
@@ -135,9 +137,22 @@ const openTrailer = inject('openTrailer')
     </div>
 
     <!-- Overview -->
-    <p v-if="movie.overview" class="text-sm text-ink-light leading-relaxed mt-3 line-clamp-3">
-      {{ movie.overview }}
-    </p>
+    <div v-if="movie.overview" class="mt-3">
+      <p
+        class="text-sm text-ink-light leading-relaxed"
+        :class="{ 'line-clamp-3': !synopsisExpanded }"
+      >
+        {{ movie.overview }}
+      </p>
+      <button
+        @click="synopsisExpanded = !synopsisExpanded"
+        class="text-xs text-ink-lighter hover:text-ink transition-colors cursor-pointer mt-1"
+        :aria-expanded="synopsisExpanded"
+        aria-label="Toggle synopsis"
+      >
+        {{ synopsisExpanded ? 'Show less' : 'Read more' }}
+      </button>
+    </div>
 
     <!-- Ratings -->
     <RatingDisplay :ratings="movie.ratings" :overall="movie.overall" />
@@ -189,6 +204,7 @@ const openTrailer = inject('openTrailer')
             :src="actor.profileUrl"
             :alt="actor.name"
             class="w-7 h-7 rounded-full object-cover shrink-0"
+            @error="actor.profileUrl = null"
           />
           <div v-else class="w-7 h-7 rounded-full bg-cream-dark shrink-0 flex items-center justify-center text-[9px] text-ink-lighter font-medium">
             {{ actor.name.split(' ').map(n => n[0]).join('').slice(0, 2) }}

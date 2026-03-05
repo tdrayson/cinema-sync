@@ -18,6 +18,7 @@ defineEmits(['select'])
       :src="movie.posterUrl"
       :alt="movie.title"
       class="w-8 h-12 object-cover shrink-0"
+      @error="movie.posterUrl = null"
     />
     <div v-else class="w-8 h-12 bg-border shrink-0 flex items-center justify-center text-[10px] text-ink-lighter">
       ?

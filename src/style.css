@@ -43,3 +43,14 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Toast transitions */
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.3s ease, translate 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  translate: 1rem 0;
+}

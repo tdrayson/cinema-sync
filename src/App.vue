@@ -12,6 +12,13 @@ const { movies, loadFromUrl, addMovie, setShowtimes, setCinemaTitle } = useCompa
 const trailerVideoId = ref(null)
 const searchBar = ref(null)
 const stickyHeader = ref(null)
+const addFilmErrors = ref([])
+
+const CINEMA_TITLE_PREFIXES = /^(Awards?\s*Season:\s*|Secret\s*Cinema:\s*|Flashback:\s*|RE:\s*|Movies\s*for\s*Juniors:\s*)/i
+
+function cleanCinemaTitle(name) {
+  return name.replace(CINEMA_TITLE_PREFIXES, '').trim()
+}
 
 const filmCount = computed(() => movies.value.length)
 
@@ -25,23 +32,44 @@ function closeTrailer() {
 
 provide('openTrailer', openTrailer)
 
+async function searchTmdb(name, year) {
+  const params = { query: name }
+  if (year) params.year = year
+  const data = await tmdbFetch('/search/movie', params)
+  return data.results?.length ? data.results[0] : null
+}
+
 async function onAddCinemaFilms(films) {
+  const failed = []
   for (const film of films) {
     try {
-      const params = { query: film.name }
-      if (film.releaseYear) params.year = film.releaseYear
-      const data = await tmdbFetch('/search/movie', params)
-      if (data.results && data.results.length > 0) {
-        const tmdbId = data.results[0].id
+      const cleanName = cleanCinemaTitle(film.name)
+      // Try cleaned title first, then original if different
+      let result = await searchTmdb(cleanName, film.releaseYear)
+      if (!result && cleanName !== film.name) {
+        result = await searchTmdb(film.name, film.releaseYear)
+      }
+      // Retry without year constraint as last resort
+      if (!result && film.releaseYear) {
+        result = await searchTmdb(cleanName, null)
+      }
+      if (result) {
+        const tmdbId = result.id
         setCinemaTitle(tmdbId, film.name)
         await addMovie(tmdbId)
         if (film.showtimes?.length) {
           setShowtimes(tmdbId, film.showtimes)
         }
+      } else {
+        failed.push(film.name)
       }
     } catch {
-      // skip films that can't be found
+      failed.push(film.name)
     }
+  }
+  if (failed.length) {
+    addFilmErrors.value = failed
+    setTimeout(() => { addFilmErrors.value = [] }, 6000)
   }
 }
 
@@ -104,5 +132,33 @@ onMounted(() => {
     <!-- Trailer Modal -->
     <TrailerModal :video-id="trailerVideoId" @close="closeTrailer" />
     <CinemaModal @add-films="onAddCinemaFilms" />
+
+    <!-- Toast: failed films -->
+    <Teleport to="body">
+      <Transition name="toast">
+        <div
+          v-if="addFilmErrors.length"
+          class="fixed bottom-6 right-6 z-50 bg-cream-dark text-ink px-5 py-3.5 shadow-[0_4px_24px_rgba(0,0,0,0.12)] max-w-sm w-full border border-border rounded"
+        >
+          <div class="flex items-start gap-3">
+            <svg class="w-4 h-4 shrink-0 mt-0.5 text-ink-lighter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="6" />
+              <path d="M8 5v3.5M8 10.5v.5" />
+            </svg>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-medium text-ink">
+                {{ addFilmErrors.length === 1 ? "Couldn't find film on TMDB" : `Couldn't find ${addFilmErrors.length} films on TMDB` }}
+              </p>
+              <p class="text-[11px] text-ink-lighter mt-0.5 truncate">{{ addFilmErrors.join(', ') }}</p>
+            </div>
+            <button @click="addFilmErrors = []" class="shrink-0 text-ink-lighter hover:text-ink transition-colors cursor-pointer -mr-1" aria-label="Dismiss">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
