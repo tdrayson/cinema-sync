@@ -13,6 +13,10 @@ let cinemasLoaded = false
 
 export function useCinema() {
   const isActive = computed(() => selectedCinemas.value.length > 0)
+  const availableChains = computed(() => {
+    const chains = new Set(cinemas.value.map(c => c.chain))
+    return chains
+  })
 
   async function loadAllCinemas() {
     if (cinemasLoaded) return
@@ -96,6 +100,7 @@ export function useCinema() {
     showModal,
     isActive,
     mergedFilms,
+    availableChains,
     loadAllCinemas,
     loadFilmsForSelectedCinemas,
     toggleCinema,

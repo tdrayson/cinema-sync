@@ -14,6 +14,7 @@ const {
   loadingCinemas,
   loadingFilms,
   mergedFilms,
+  availableChains,
   loadAllCinemas,
   loadFilmsForSelectedCinemas,
   toggleCinema,
@@ -495,7 +496,7 @@ watch(showModal, async (val) => {
                 </svg>
               </button>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div v-if="availableChains.size > 1" class="flex items-center gap-1.5">
               <button
                 @click="chainFilter = 'all'"
                 class="px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
@@ -506,6 +507,7 @@ watch(showModal, async (val) => {
                 All
               </button>
               <button
+                v-if="availableChains.has('vue')"
                 @click="chainFilter = 'vue'"
                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
                 :class="chainFilter === 'vue'
@@ -516,6 +518,7 @@ watch(showModal, async (val) => {
                 Vue
               </button>
               <button
+                v-if="availableChains.has('cineworld')"
                 @click="chainFilter = 'cineworld'"
                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
                 :class="chainFilter === 'cineworld'
