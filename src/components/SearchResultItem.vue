@@ -11,7 +11,7 @@ defineEmits(['select'])
     @mousedown.prevent
     @click="$emit('select', movie.id)"
     @keydown.enter.prevent="$emit('select', movie.id)"
-    class="flex items-center gap-3 w-full px-4 py-2.5 transition-colors text-left cursor-pointer hover:bg-cream-dark focus:bg-cream-dark focus:outline-none"
+    class="flex items-center gap-3 w-full px-4 py-2.5 transition-colors text-left cursor-pointer hover:bg-cream-dark"
   >
     <img
       v-if="movie.posterUrl"

@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, toRef } from 'vue'
 import { useComparison } from '../composables/useComparison.js'
 import { useCinema } from '../composables/useCinema.js'
+import { useFocusTrap } from '../composables/useFocusTrap.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -11,6 +12,11 @@ const emit = defineEmits(['close'])
 
 const { movies, movieShowtimes } = useComparison()
 const { selectedCinemas, selectedDate } = useCinema()
+
+const { containerRef: introRef, onKeydown: onIntroKeydown } = useFocusTrap(
+  toRef(props, 'open'),
+  { onClose: () => emit('close'), lockScroll: false }
+)
 
 const filmCount = computed(() => movies.value.length)
 
@@ -77,8 +83,8 @@ function close() {
       v-if="open"
       class="fixed inset-0 z-40 flex items-center justify-center p-4"
     >
-      <div class="fixed inset-0 bg-ink/45" @click="close" />
-      <div class="relative max-w-lg w-full bg-cream border border-border-dark shadow-xl">
+      <div class="fixed inset-0 bg-ink/45" aria-hidden="true" @click="close" />
+      <div ref="introRef" role="dialog" aria-modal="true" aria-label="Shared link introduction" @keydown="onIntroKeydown" class="relative max-w-lg w-full bg-cream border border-border-dark shadow-xl">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 class="font-serif text-lg text-ink leading-snug">

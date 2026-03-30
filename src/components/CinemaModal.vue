@@ -2,6 +2,7 @@
 import { ref, watch, nextTick, computed } from 'vue'
 import { useCinema } from '../composables/useCinema.js'
 import { useComparison } from '../composables/useComparison.js'
+import { useFocusTrap } from '../composables/useFocusTrap.js'
 import { chainIcon } from '../utils/assets.js'
 import DatePicker from './DatePicker.vue'
 import TimePicker from './TimePicker.vue'
@@ -69,6 +70,21 @@ function cancelConfirm() {
   showConfirm.value = false
   confirmCallback = null
 }
+
+// Focus traps for sub-dialogs
+const lightboxOpen = computed(() => !!lightboxPoster.value)
+const { containerRef: lightboxRef, onKeydown: onLightboxKeydown } = useFocusTrap(
+  lightboxOpen,
+  { onClose: closePosterLightbox, lockScroll: false }
+)
+const { containerRef: dateConfirmRef, onKeydown: onDateConfirmKeydown } = useFocusTrap(
+  showDateConfirm,
+  { onClose: cancelDateChange, lockScroll: false }
+)
+const { containerRef: confirmRef, onKeydown: onConfirmKeydown } = useFocusTrap(
+  showConfirm,
+  { onClose: cancelConfirm, lockScroll: false }
+)
 
 const filteredCinemas = computed(() => {
   let list = filterCinemas(searchQuery.value)
@@ -531,11 +547,15 @@ watch(showModal, async (val) => {
         <template v-if="step === 1">
           <div class="px-5 py-3 border-b border-border shrink-0 space-y-2.5">
             <div class="relative">
+              <label for="cinema-search" class="sr-only">Search cinemas</label>
               <input
+                id="cinema-search"
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search cinemas..."
-                class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-base sm:text-sm"
+                role="searchbox"
+                aria-label="Search cinemas"
+                class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border placeholder-ink-lighter text-base sm:text-sm"
               />
               <button
                 v-if="searchQuery"
@@ -548,9 +568,11 @@ watch(showModal, async (val) => {
                 </svg>
               </button>
             </div>
-            <div v-if="availableChains.size > 1" class="flex items-center gap-1.5">
+            <fieldset v-if="availableChains.size > 1" class="flex items-center gap-1.5">
+              <legend class="sr-only">Filter by cinema chain</legend>
               <button
                 @click="chainFilter = 'all'"
+                :aria-pressed="chainFilter === 'all'"
                 class="px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
                 :class="chainFilter === 'all'
                   ? 'border-ink bg-ink text-cream'
@@ -561,6 +583,7 @@ watch(showModal, async (val) => {
               <button
                 v-if="availableChains.has('vue')"
                 @click="chainFilter = 'vue'"
+                :aria-pressed="chainFilter === 'vue'"
                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
                 :class="chainFilter === 'vue'
                   ? 'border-ink bg-ink text-cream'
@@ -572,6 +595,7 @@ watch(showModal, async (val) => {
               <button
                 v-if="availableChains.has('cineworld')"
                 @click="chainFilter = 'cineworld'"
+                :aria-pressed="chainFilter === 'cineworld'"
                 class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border transition-colors cursor-pointer"
                 :class="chainFilter === 'cineworld'
                   ? 'border-ink bg-ink text-cream'
@@ -580,7 +604,7 @@ watch(showModal, async (val) => {
                 <img :src="chainIcon('cineworld')" alt="Cineworld" class="max-w-3.5 max-h-3.5 aspect-square rounded shrink-0" />
                 Cineworld
               </button>
-            </div>
+            </fieldset>
           </div>
 
           <div class="flex-1 overflow-y-auto min-h-0">
@@ -591,11 +615,17 @@ watch(showModal, async (val) => {
               <div
                 v-for="cinema in filteredCinemas"
                 :key="cinema.id"
+                role="checkbox"
+                :aria-checked="isCinemaSelected(cinema)"
+                :aria-label="`Select ${cinema.name}`"
+                tabindex="0"
                 @click="onToggleCinema(cinema)"
+                @keydown.enter.prevent="onToggleCinema(cinema)"
+                @keydown.space.prevent="onToggleCinema(cinema)"
                 class="w-full text-left px-5 py-3 hover:bg-ink/5 transition-colors cursor-pointer border-b border-border last:border-b-0 flex items-center gap-3"
               >
-                <!-- Checkbox -->
-                <div class="shrink-0">
+                <!-- Checkbox visual -->
+                <div class="shrink-0" aria-hidden="true">
                   <div
                     class="w-4 h-4 border rounded-[3px] flex items-center justify-center transition-colors"
                     :class="isCinemaSelected(cinema) ? 'bg-ink border-ink' : 'border-border-dark/60'"
@@ -681,7 +711,7 @@ watch(showModal, async (val) => {
                     v-if="film.posterUrl"
                     type="button"
                     @click.stop="openPosterLightbox(film.posterUrl, film.title)"
-                    class="group/poster relative w-10 h-14 shrink-0 border border-border overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/70 cursor-zoom-in"
+                    class="group/poster relative w-10 h-14 shrink-0 border border-border overflow-hidden  cursor-zoom-in"
                     aria-label="Open larger poster in lightbox"
                     :title="`Click to enlarge poster for ${film.title}`"
                   >
@@ -725,10 +755,14 @@ watch(showModal, async (val) => {
                         class="mb-1.5 last:mb-0"
                       >
                         <p v-if="screenType" class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium mb-1">{{ screenType }}</p>
-                        <div class="flex flex-wrap gap-1.5">
-                          <span
+                        <div class="flex flex-wrap gap-1.5" role="group" :aria-label="`${screenType || 'Standard'} showtimes at ${cs.cinemaName}`">
+                          <button
                             v-for="(st, i) in sts"
                             :key="i"
+                            type="button"
+                            :disabled="st.soldOut"
+                            :aria-pressed="!st.soldOut && isShowtimeSelected(film, cs, st)"
+                            :aria-label="`${st.time}${screenType ? ' ' + screenType : ''} at ${cs.cinemaName}${st.soldOut ? ' – sold out' : ''}`"
                             @click.stop="toggleShowtime(film, cs, st)"
                             class="inline-block px-2 py-0.5 text-xs border rounded transition-colors"
                             :class="st.soldOut
@@ -738,7 +772,7 @@ watch(showModal, async (val) => {
                                 : 'border-border-dark text-ink cursor-pointer hover:border-ink'"
                           >
                             {{ st.time }}
-                          </span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -778,8 +812,8 @@ watch(showModal, async (val) => {
                           <img :src="chainIcon(cinema.chain)" :alt="cinema.chain" class="max-w-3 max-h-3 aspect-square rounded shrink-0" />
                           <span class="text-[10px] text-ink-lighter truncate">{{ cinema.name }}</span>
                         </div>
-                        <div class="flex flex-wrap gap-1">
-                          <span v-for="time in cinema.times" :key="time" class="text-[10px] px-1.5 py-0.5 bg-ink/15 text-ink rounded">{{ time }}</span>
+                        <div class="flex flex-wrap gap-1" role="list" :aria-label="`Selected times at ${cinema.name}`">
+                          <span v-for="time in cinema.times" :key="time" role="listitem" class="text-[10px] px-1.5 py-0.5 bg-ink/15 text-ink rounded">{{ time }}</span>
                         </div>
                       </div>
                     </div>
@@ -889,7 +923,7 @@ watch(showModal, async (val) => {
                     v-if="film.posterUrl"
                     type="button"
                     @click.stop="openPosterLightbox(film.posterUrl, film.title)"
-                    class="group/poster relative w-8 h-12 shrink-0 border border-border overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/70 cursor-zoom-in"
+                    class="group/poster relative w-8 h-12 shrink-0 border border-border overflow-hidden  cursor-zoom-in"
                     aria-label="Open larger poster in lightbox"
                     :title="`Click to enlarge poster for ${film.title}`"
                   >
@@ -972,8 +1006,8 @@ watch(showModal, async (val) => {
       v-if="lightboxPoster"
       class="fixed inset-0 z-[60] flex items-center justify-center p-4"
     >
-      <div class="fixed inset-0 bg-ink/70" @click="closePosterLightbox" />
-      <div class="relative max-w-md w-auto">
+      <div class="fixed inset-0 bg-ink/70" aria-hidden="true" @click="closePosterLightbox" />
+      <div ref="lightboxRef" role="dialog" aria-modal="true" :aria-label="lightboxPoster?.title ? `${lightboxPoster.title} poster` : 'Film poster'" @keydown="onLightboxKeydown" class="relative max-w-md w-auto">
         <button
           type="button"
           @click="closePosterLightbox"
@@ -999,8 +1033,8 @@ watch(showModal, async (val) => {
       v-if="showDateConfirm"
       class="fixed inset-0 z-[60] flex items-center justify-center p-4"
     >
-      <div class="fixed inset-0 bg-ink/40" @click="cancelDateChange" />
-      <div class="relative bg-cream border border-border p-6 max-w-sm w-full shadow-lg">
+      <div class="fixed inset-0 bg-ink/40" aria-hidden="true" @click="cancelDateChange" />
+      <div ref="dateConfirmRef" role="alertdialog" aria-modal="true" aria-label="Change date?" @keydown="onDateConfirmKeydown" class="relative bg-cream border border-border p-6 max-w-sm w-full shadow-lg">
         <h3 class="font-serif text-lg text-ink mb-2">Change date?</h3>
         <p class="text-sm text-ink-light mb-5">Your selected showtimes will be cleared when changing the date.</p>
         <div class="flex justify-end gap-2">
@@ -1027,8 +1061,8 @@ watch(showModal, async (val) => {
       v-if="showConfirm"
       class="fixed inset-0 z-[60] flex items-center justify-center p-4"
     >
-      <div class="fixed inset-0 bg-ink/40" @click="cancelConfirm" />
-      <div class="relative bg-cream border border-border p-6 max-w-sm w-full shadow-lg">
+      <div class="fixed inset-0 bg-ink/40" aria-hidden="true" @click="cancelConfirm" />
+      <div ref="confirmRef" role="alertdialog" aria-modal="true" :aria-label="confirmTitle" @keydown="onConfirmKeydown" class="relative bg-cream border border-border p-6 max-w-sm w-full shadow-lg">
         <h3 class="font-serif text-lg text-ink mb-2">{{ confirmTitle }}</h3>
         <p class="text-sm text-ink-light mb-5">{{ confirmText }}</p>
         <div class="flex justify-end gap-2">

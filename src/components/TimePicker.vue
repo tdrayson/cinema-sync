@@ -86,6 +86,12 @@ function onClickOutside(e) {
   }
 }
 
+function onPickerKeydown(e) {
+  if (e.key === 'Escape') {
+    open.value = false
+  }
+}
+
 onMounted(() => document.addEventListener('mousedown', onClickOutside))
 onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 </script>
@@ -95,21 +101,23 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     <!-- Trigger button -->
     <button
       @click="open = !open"
+      :aria-expanded="open"
+      aria-label="Filter by time"
       class="flex items-center gap-2 px-3 py-1.5 text-xs border border-border hover:border-ink transition-colors cursor-pointer"
     >
-      <svg class="w-3.5 h-3.5 text-ink/50" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg class="w-3.5 h-3.5 text-ink/50" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <circle cx="8" cy="8" r="6" />
         <path d="M8 5v3.5l2.5 1.5" />
       </svg>
       <span class="font-medium text-ink">{{ displayTime }}</span>
-      <svg class="w-3 h-3 text-ink/40 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg class="w-3 h-3 text-ink/40 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M4 6l4 4 4-4" />
       </svg>
     </button>
 
     <!-- Dropdown picker -->
     <Transition name="picker-fade">
-      <div v-if="open" class="absolute top-full left-0 mt-1 z-10 bg-cream border border-border shadow-lg w-56">
+      <div v-if="open" role="dialog" aria-label="Time filter" @keydown="onPickerKeydown" class="absolute top-full left-0 mt-1 z-10 bg-cream border border-border shadow-lg w-56">
         <!-- Header -->
         <div class="flex items-center justify-between px-3 py-2 border-b border-border">
           <span class="text-[10px] font-semibold uppercase tracking-widest text-ink-lighter">Show films after</span>
@@ -126,11 +134,13 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
         <div class="flex">
           <!-- Hours -->
           <div class="flex-1 border-r border-border">
-            <p class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium text-center py-1.5 border-b border-border/60">Hour</p>
-            <div ref="hourScroller" class="h-48 overflow-y-auto hide-scrollbar">
+            <p id="hour-label" class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium text-center py-1.5 border-b border-border/60">Hour</p>
+            <div ref="hourScroller" role="listbox" aria-labelledby="hour-label" class="h-48 overflow-y-auto hide-scrollbar">
               <button
                 v-for="h in hours"
                 :key="h"
+                role="option"
+                :aria-selected="selectedHour === h"
                 @click="selectHour(h)"
                 class="w-full py-1.5 text-xs text-center transition-colors cursor-pointer"
                 :class="selectedHour === h
@@ -144,11 +154,13 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 
           <!-- Minutes -->
           <div class="flex-1">
-            <p class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium text-center py-1.5 border-b border-border/60">Min</p>
-            <div class="h-48">
+            <p id="minute-label" class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium text-center py-1.5 border-b border-border/60">Min</p>
+            <div role="listbox" aria-labelledby="minute-label" class="h-48">
               <button
                 v-for="m in minutes"
                 :key="m"
+                role="option"
+                :aria-selected="selectedMinute === m"
                 @click="selectMinute(m)"
                 class="w-full py-1.5 text-xs text-center transition-colors cursor-pointer"
                 :class="selectedMinute === m

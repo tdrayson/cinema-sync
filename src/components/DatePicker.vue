@@ -99,6 +99,12 @@ function onClickOutside(e) {
   }
 }
 
+function onPickerKeydown(e) {
+  if (e.key === 'Escape') {
+    open.value = false
+  }
+}
+
 onMounted(() => document.addEventListener('mousedown', onClickOutside))
 onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 </script>
@@ -108,20 +114,22 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     <!-- Trigger button -->
     <button
       @click="open = !open"
+      :aria-expanded="open"
+      aria-label="Select date"
       class="flex items-center gap-2 px-3 py-1.5 text-xs border border-border hover:border-ink transition-colors cursor-pointer"
     >
-      <svg class="w-3.5 h-3.5 text-ink/50" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg class="w-3.5 h-3.5 text-ink/50" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <rect x="2" y="3" width="12" height="11" rx="1" />
         <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" />
       </svg>
       <span class="font-medium text-ink">{{ displayDate }}</span>
-      <svg class="w-3 h-3 text-ink/40 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg class="w-3 h-3 text-ink/40 transition-transform" :class="open ? 'rotate-180' : ''" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M4 6l4 4 4-4" />
       </svg>
     </button>
 
     <!-- Dropdown calendar -->
-    <div v-if="open" class="absolute top-full left-0 mt-1 z-10 bg-cream border border-border shadow-lg p-3 w-64">
+    <div v-if="open" role="dialog" aria-label="Date picker" @keydown="onPickerKeydown" class="absolute top-full left-0 mt-1 z-10 bg-cream border border-border shadow-lg p-3 w-64">
       <!-- Month header -->
       <div class="flex items-center justify-between mb-2">
         <button
@@ -147,31 +155,38 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
       </div>
 
       <!-- Day headers -->
-      <div class="grid grid-cols-7 mb-1">
-        <div v-for="dh in dayHeaders" :key="dh" class="text-center text-[10px] uppercase tracking-wider text-ink-lighter font-medium py-1">
+      <div class="grid grid-cols-7 mb-1" role="row">
+        <div v-for="dh in dayHeaders" :key="dh" role="columnheader" class="text-center text-[10px] uppercase tracking-wider text-ink-lighter font-medium py-1">
           {{ dh }}
         </div>
       </div>
 
       <!-- Day cells -->
-      <div class="grid grid-cols-7">
-        <div
+      <div class="grid grid-cols-7" role="grid" aria-label="Calendar">
+        <button
           v-for="(cell, idx) in calendarDays"
           :key="idx"
+          type="button"
+          :disabled="!cell.day || cell.isPast"
+          :aria-selected="cell.isSelected"
+          :aria-label="cell.day ? `${cell.day} ${monthLabel}` : undefined"
+          :aria-current="cell.isToday ? 'date' : undefined"
           @click="selectDay(cell)"
-          class="relative flex items-center justify-center py-1.5 text-xs transition-colors"
+          class="relative flex items-center justify-center py-1.5 text-xs transition-colors bg-transparent"
           :class="[
             cell.day && !cell.isPast ? 'cursor-pointer hover:bg-ink/5' : '',
             cell.isPast ? 'text-ink/20 cursor-not-allowed' : 'text-ink',
             cell.isSelected ? 'bg-ink/10 font-medium' : '',
+            !cell.day ? 'invisible' : '',
           ]"
         >
           <span v-if="cell.day">{{ cell.day }}</span>
           <span
             v-if="cell.isToday && !cell.isSelected"
             class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-ink"
+            aria-hidden="true"
           />
-        </div>
+        </button>
       </div>
     </div>
   </div>

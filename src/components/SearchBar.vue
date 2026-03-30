@@ -2,12 +2,27 @@
 import { ref, computed, nextTick } from 'vue'
 import SearchResultItem from './SearchResultItem.vue'
 import ShareButton from './ShareButton.vue'
+import ReorderModal from './ReorderModal.vue'
 import { useMovieSearch } from '../composables/useMovieSearch.js'
 import { useComparison } from '../composables/useComparison.js'
 import { useCinema } from '../composables/useCinema.js'
+import { useFocusTrap } from '../composables/useFocusTrap.js'
 
 const { query, results, popular, loading } = useMovieSearch()
 const { addMovie, sortOrder, movies, clearMovies, movieShowtimes, showtimesOnly } = useComparison()
+const showReorder = ref(false)
+let hasCustomOrder = false
+
+function onSortChange(e) {
+  if (e.target.value === 'custom' && !hasCustomOrder) {
+    showReorder.value = true
+  }
+}
+
+function onReorderClose() {
+  if (sortOrder.value === 'custom') hasCustomOrder = true
+  showReorder.value = false
+}
 
 const hasAnyShowtimes = computed(() => {
   for (const st of movieShowtimes.value.values()) {
@@ -21,6 +36,15 @@ const searchInput = ref(null)
 const container = ref(null)
 const showClearConfirm = ref(false)
 const showPanel = ref(false)
+
+const { containerRef: panelRef, onKeydown: onPanelKeydown } = useFocusTrap(
+  showPanel,
+  { onClose: () => { showPanel.value = false } }
+)
+const { containerRef: clearRef, onKeydown: onClearKeydown } = useFocusTrap(
+  showClearConfirm,
+  { onClose: () => { showClearConfirm.value = false } }
+)
 
 function confirmClear() {
   clearMovies()
@@ -89,7 +113,7 @@ defineExpose({ openSearch })
             :aria-expanded="open && showResults.length > 0"
             aria-controls="search-listbox"
             placeholder="Search films..."
-            class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-base sm:text-sm"
+            class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border placeholder-ink-lighter text-base sm:text-sm"
           />
           <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
             <div class="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
@@ -147,13 +171,28 @@ defineExpose({ openSearch })
           <select
             id="sort-select"
             v-model="sortOrder"
-            class="text-xs bg-white text-ink border border-border focus:border-ink focus:outline-none py-1.5 px-2 cursor-pointer"
+            @change="onSortChange"
+            class="text-xs bg-white text-ink border border-border py-1.5 px-2 cursor-pointer"
           >
             <option value="none">Order added</option>
             <option value="desc">Score: high to low</option>
             <option value="asc">Score: low to high</option>
+            <option value="custom">Custom</option>
           </select>
         </div>
+
+        <button
+          v-if="movies.length >= 2"
+          @click="showReorder = true"
+          class="text-xs text-ink-lighter hover:text-ink transition-colors cursor-pointer flex items-center gap-1"
+          aria-label="Reorder films"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 4h10M3 8h10M3 12h10" />
+            <path d="M12 2l2 2-2 2M4 10l-2 2 2 2" />
+          </svg>
+          <span>Reorder</span>
+        </button>
 
         <label
           v-if="hasAnyShowtimes"
@@ -209,8 +248,8 @@ defineExpose({ openSearch })
       v-if="showPanel"
       class="fixed inset-0 z-50 sm:hidden"
     >
-      <div class="absolute inset-0 bg-ink/40" @click="showPanel = false"></div>
-      <div class="absolute top-0 right-0 bottom-0 w-72 bg-cream border-l border-border shadow-xl flex flex-col">
+      <div class="absolute inset-0 bg-ink/40" aria-hidden="true" @click="showPanel = false"></div>
+      <div ref="panelRef" role="dialog" aria-modal="true" aria-label="Menu" @keydown="onPanelKeydown" class="absolute top-0 right-0 bottom-0 w-72 bg-cream border-l border-border shadow-xl flex flex-col">
         <div class="flex items-center justify-between px-5 py-4 border-b border-border">
           <span class="text-xs uppercase tracking-widest font-medium text-ink">Menu</span>
           <button
@@ -227,16 +266,32 @@ defineExpose({ openSearch })
         <div class="flex-1 px-5 py-4 flex flex-col">
           <!-- Sort -->
           <div>
-            <p class="text-[10px] uppercase tracking-widest text-ink-lighter font-medium mb-2">Sort</p>
+            <label for="sort-select-mobile" class="block text-[10px] uppercase tracking-widest text-ink-lighter font-medium mb-2">Sort</label>
             <select
+              id="sort-select-mobile"
               v-model="sortOrder"
-              class="w-full text-xs bg-white text-ink border border-border focus:border-ink focus:outline-none py-1.5 px-2 cursor-pointer"
+              @change="onSortChange"
+              class="w-full text-xs bg-white text-ink border border-border py-1.5 px-2 cursor-pointer"
             >
               <option value="none">Order added</option>
               <option value="desc">Score: high to low</option>
               <option value="asc">Score: low to high</option>
+              <option value="custom">Custom</option>
             </select>
           </div>
+
+          <!-- Reorder -->
+          <button
+            v-if="movies.length >= 2"
+            @click="showReorder = true; showPanel = false"
+            class="mt-4 text-xs text-ink-lighter hover:text-ink transition-colors cursor-pointer text-left flex items-center gap-1.5"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 4h10M3 8h10M3 12h10" />
+              <path d="M12 2l2 2-2 2M4 10l-2 2 2 2" />
+            </svg>
+            Reorder films
+          </button>
 
           <!-- Showtimes only -->
           <label
@@ -286,8 +341,8 @@ defineExpose({ openSearch })
       v-if="showClearConfirm"
       class="fixed inset-0 z-50 flex items-center justify-center"
     >
-      <div class="absolute inset-0 bg-ink/40" @click="showClearConfirm = false"></div>
-      <div class="relative bg-cream border border-border p-8 max-w-sm w-full mx-4 shadow-lg">
+      <div class="absolute inset-0 bg-ink/40" aria-hidden="true" @click="showClearConfirm = false"></div>
+      <div ref="clearRef" role="alertdialog" aria-modal="true" aria-label="Clear all films?" @keydown="onClearKeydown" class="relative bg-cream border border-border p-8 max-w-sm w-full mx-4 shadow-lg">
         <h3 class="font-serif text-xl text-ink mb-2">Clear all films?</h3>
         <p class="text-sm text-ink-light mb-6">This will remove all films and showtimes from your current session.</p>
         <div class="flex justify-end gap-3">
@@ -307,4 +362,6 @@ defineExpose({ openSearch })
       </div>
     </div>
   </Teleport>
+
+  <ReorderModal :open="showReorder" @close="onReorderClose" />
 </template>

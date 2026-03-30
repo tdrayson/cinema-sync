@@ -131,7 +131,7 @@ export function useComparison() {
         return st && st.length > 0;
       });
     }
-    if (sortOrder.value === 'none') return list;
+    if (sortOrder.value === 'none' || sortOrder.value === 'custom') return list;
     return [...list].sort((a, b) => {
       const aScore = a.overall ?? -1;
       const bScore = b.overall ?? -1;
@@ -169,6 +169,19 @@ export function useComparison() {
       next.delete(tmdbId);
       movieShowtimes.value = next;
     }
+  }
+
+  function moveMovie(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    const list = [...movies.value];
+    const [item] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, item);
+    movies.value = list;
+  }
+
+  function reorderMovies(orderedIds) {
+    const map = new Map(movies.value.map((m) => [m.id, m]));
+    movies.value = orderedIds.map((id) => map.get(id)).filter(Boolean);
   }
 
   function clearMovies() {
@@ -348,6 +361,8 @@ export function useComparison() {
     cinemaTitleMap,
     addMovie,
     removeMovie,
+    moveMovie,
+    reorderMovies,
     clearMovies,
     loadFromUrl,
     setShowtimes,

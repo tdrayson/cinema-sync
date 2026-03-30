@@ -35,6 +35,20 @@ body {
   min-width: max(0px, calc((100vw - 1400px) / 2 - 0.5rem));
 }
 
+/* Focus-visible ring — uses box-shadow so it's never clipped by overflow:hidden */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-cream), 0 0 0 4px var(--color-ink);
+}
+
+/* Inputs/selects use an inset ring so it sits inside the border */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-ink) inset;
+}
+
 /* Horizontal scroll with no visible scrollbar */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;

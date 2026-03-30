@@ -223,12 +223,12 @@ watch([sortedMovies, loadingIds], () => nextTick(checkOverflow))
       </div>
       <button
         @click="$emit('add')"
-        class="w-full aspect-[2/3] border-2 border-dashed border-border hover:border-ink-lighter focus:border-ink-lighter transition-colors flex flex-col items-center justify-center gap-3 cursor-pointer group focus:outline-none"
+        class="w-full aspect-[2/3] border-2 border-dashed border-border hover:border-ink-lighter focus-visible:border-ink-lighter transition-colors flex flex-col items-center justify-center gap-3 cursor-pointer group"
       >
-        <span class="text-3xl text-ink-lighter group-hover:text-ink group-focus:text-ink transition-colors leading-none">
+        <span class="text-3xl text-ink-lighter group-hover:text-ink group-focus-visible:text-ink transition-colors leading-none">
           +
         </span>
-        <span class="text-xs uppercase tracking-widest text-ink-lighter group-hover:text-ink group-focus:text-ink transition-colors font-medium">
+        <span class="text-xs uppercase tracking-widest text-ink-lighter group-hover:text-ink group-focus-visible:text-ink transition-colors font-medium">
           Add Film
         </span>
       </button>

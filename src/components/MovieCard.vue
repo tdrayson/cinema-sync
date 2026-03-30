@@ -80,10 +80,10 @@ const synopsisExpanded = ref(false)
       <button
         v-if="movie.trailerKey"
         @click="openTrailer(movie.trailerKey)"
-        class="group/play absolute inset-0 flex items-center justify-center bg-black/0 group-hover/poster:bg-black/40 focus:bg-black/40 transition-all cursor-pointer focus:outline-none"
+        class="group/play absolute inset-0 flex items-center justify-center bg-black/0 group-hover/poster:bg-black/40 focus-visible:bg-black/40 transition-all cursor-pointer"
         aria-label="Play trailer"
       >
-        <span class="w-12 h-12 flex items-center justify-center bg-white/90 opacity-0 group-hover/poster:opacity-100 group-focus/play:opacity-100 transition-opacity">
+        <span class="w-12 h-12 flex items-center justify-center bg-white/90 opacity-0 group-hover/poster:opacity-100 group-focus-visible/play:opacity-100 transition-opacity">
           <svg class="w-5 h-5 text-ink ml-0.5" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 2l10 6-10 6V2z"/>
           </svg>
@@ -176,13 +176,15 @@ const synopsisExpanded = ref(false)
             class="mb-1.5 last:mb-0"
           >
             <p v-if="screenType" class="text-[10px] uppercase tracking-wider text-ink-lighter font-medium mb-1">{{ screenType }}</p>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-1.5" role="list" :aria-label="`${screenType || 'Standard'} showtimes at ${group.cinema}`">
               <a
                 v-for="t in times"
                 :key="t.time"
-                :href="t.bookingLink"
+                :href="t.bookingLink || undefined"
                 :target="t.bookingLink ? '_blank' : undefined"
-                rel="noopener noreferrer"
+                :rel="t.bookingLink ? 'noopener noreferrer' : undefined"
+                role="listitem"
+                :aria-label="`${t.time}${screenType ? ' ' + screenType : ''} at ${group.cinema}${t.bookingLink ? ' – book tickets (opens in new tab)' : ''}`"
                 class="inline-block px-2 py-0.5 text-xs border border-border-dark text-ink rounded transition-colors"
                 :class="t.bookingLink ? 'hover:bg-ink hover:text-cream cursor-pointer' : ''"
               >
