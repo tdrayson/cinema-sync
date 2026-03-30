@@ -89,7 +89,7 @@ defineExpose({ openSearch })
             :aria-expanded="open && showResults.length > 0"
             aria-controls="search-listbox"
             placeholder="Search films..."
-            class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-sm"
+            class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-base sm:text-sm"
           />
           <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
             <div class="w-3.5 h-3.5 border-2 border-ink border-t-transparent rounded-full animate-spin" />

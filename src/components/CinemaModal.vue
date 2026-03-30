@@ -514,7 +514,7 @@ watch(showModal, async (val) => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search cinemas..."
-                class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-sm"
+                class="w-full px-3 py-1.5 pr-8 bg-white text-ink border border-border focus:border-ink focus:outline-none placeholder-ink-lighter text-base sm:text-sm"
               />
               <button
                 v-if="searchQuery"
