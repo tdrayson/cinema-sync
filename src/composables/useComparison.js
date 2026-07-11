@@ -218,13 +218,17 @@ export function useComparison() {
 
   async function loadSharedData(data) {
     const ids = data.f || [];
-    for (const id of ids) {
-      addMovie(id);
-    }
+    // Await all adds: addMovie appends each film when its detail fetch
+    // resolves, i.e. in network-completion order, not the encoded order.
+    await Promise.all(ids.map((id) => addMovie(id)));
 
     // Restore the sender's sort state so the shared order is preserved,
     // rather than falling back to the viewer's local preference
     sortOrder.value = data.so || 'none';
+
+    // Re-apply the sender's exact order. Without this the custom/none sorts
+    // display films in fetch-completion order rather than the shared order.
+    reorderMovies(ids);
 
     if (!data.s) return;
 
