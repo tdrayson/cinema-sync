@@ -14,6 +14,12 @@ const cinemaTitleMap = ref(new Map());
 function encodeData(ids) {
   const data = { f: ids };
 
+  // Preserve the sender's sort preference so the recipient sees the films
+  // in the same order/state (default 'none' is left implicit to keep URLs short)
+  if (sortOrder.value && sortOrder.value !== 'none') {
+    data.so = sortOrder.value;
+  }
+
   const showtimesObj = {};
   for (const id of ids) {
     const st = movieShowtimes.value.get(id);
@@ -215,6 +221,11 @@ export function useComparison() {
     for (const id of ids) {
       addMovie(id);
     }
+
+    // Restore the sender's sort state so the shared order is preserved,
+    // rather than falling back to the viewer's local preference
+    sortOrder.value = data.so || 'none';
+
     if (!data.s) return;
 
     // Restore date if present
