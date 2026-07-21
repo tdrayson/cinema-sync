@@ -13,7 +13,7 @@ function toBoxes(score) {
 </script>
 
 <template>
-  <div v-if="ratings">
+  <div v-if="ratings?.length">
     <div class="border-t border-border pt-4 mt-4">
       <p class="text-[10px] font-semibold text-ink-lighter uppercase tracking-widest mb-3">Ratings</p>
       <div class="space-y-2">

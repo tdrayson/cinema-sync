@@ -9,7 +9,7 @@ import SharedIntroModal from './components/SharedIntroModal.vue'
 import { useComparison } from './composables/useComparison.js'
 import { tmdbFetch } from './utils/api.js'
 
-const { movies, loadFromUrl, addMovie, setShowtimes, setCinemaTitle } = useComparison()
+const { movies, loadFromUrl, addMovie, addFallbackMovie, setShowtimes, setCinemaTitle } = useComparison()
 const trailerVideoId = ref(null)
 const searchBar = ref(null)
 const stickyHeader = ref(null)
@@ -42,12 +42,13 @@ async function searchTmdb(name, year) {
 }
 
 async function onAddCinemaFilms(films) {
-  const failed = []
+  const limited = []
   for (const film of films) {
+    let result = null
     try {
       const cleanName = cleanCinemaTitle(film.name)
       // Try cleaned title first, then original if different
-      let result = await searchTmdb(cleanName, film.releaseYear)
+      result = await searchTmdb(cleanName, film.releaseYear)
       if (!result && cleanName !== film.name) {
         result = await searchTmdb(film.name, film.releaseYear)
       }
@@ -55,22 +56,36 @@ async function onAddCinemaFilms(films) {
       if (!result && film.releaseYear) {
         result = await searchTmdb(cleanName, null)
       }
-      if (result) {
-        const tmdbId = result.id
-        setCinemaTitle(tmdbId, film.name)
-        await addMovie(tmdbId)
-        if (film.showtimes?.length) {
-          setShowtimes(tmdbId, film.showtimes)
-        }
-      } else {
-        failed.push(film.name)
-      }
     } catch {
-      failed.push(film.name)
+      // Treat a TMDB outage the same as a miss and fall back below
+      result = null
     }
+
+    if (result) {
+      const tmdbId = result.id
+      setCinemaTitle(tmdbId, film.name)
+      await addMovie(tmdbId)
+      if (film.showtimes?.length) {
+        setShowtimes(tmdbId, film.showtimes)
+      }
+      continue
+    }
+
+    // No TMDB match: still add the film using the cinema's own title, poster
+    // and times, so the user's selection is never silently dropped.
+    const fallbackId = addFallbackMovie({
+      title: film.name,
+      posterUrl: film.posterUrl,
+      releaseYear: film.releaseYear,
+      durationMins: film.durationMins,
+    })
+    if (film.showtimes?.length) {
+      setShowtimes(fallbackId, film.showtimes)
+    }
+    limited.push(film.name)
   }
-  if (failed.length) {
-    addFilmErrors.value = failed
+  if (limited.length) {
+    addFilmErrors.value = limited
     setTimeout(() => { addFilmErrors.value = [] }, 6000)
   }
 }
@@ -150,7 +165,7 @@ onMounted(async () => {
     <CinemaModal @add-films="onAddCinemaFilms" />
     <SharedIntroModal :open="showSharedIntro" @close="showSharedIntro = false" />
 
-    <!-- Toast: failed films -->
+    <!-- Toast: films added without TMDB details -->
     <Teleport to="body">
       <Transition name="toast">
         <div
@@ -164,9 +179,9 @@ onMounted(async () => {
             </svg>
             <div class="min-w-0 flex-1">
               <p class="text-xs font-medium text-ink">
-                {{ addFilmErrors.length === 1 ? "Couldn't find film on TMDB" : `Couldn't find ${addFilmErrors.length} films on TMDB` }}
+                {{ addFilmErrors.length === 1 ? 'Added without ratings' : `${addFilmErrors.length} films added without ratings` }}
               </p>
-              <p class="text-[11px] text-ink-lighter mt-0.5 truncate">{{ addFilmErrors.join(', ') }}</p>
+              <p class="text-[11px] text-ink-lighter mt-0.5 truncate">Not found on TMDB: {{ addFilmErrors.join(', ') }}</p>
             </div>
             <button @click="addFilmErrors = []" class="shrink-0 text-ink-lighter hover:text-ink transition-colors cursor-pointer -mr-1" aria-label="Dismiss">
               <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">

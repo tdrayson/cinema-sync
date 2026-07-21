@@ -11,8 +11,79 @@ const showtimesOnly = ref(false);
 // Maps cinema API film title → tmdbId (populated when adding films via cinema flow)
 const cinemaTitleMap = ref(new Map());
 
+// Films added straight from the cinema listings because TMDB had no match get a
+// synthetic string id under this prefix. TMDB ids are numeric, so the two
+// namespaces can never collide.
+const FALLBACK_ID_PREFIX = 'c:';
+
+function isFallbackId(id) {
+  return typeof id === 'string' && id.startsWith(FALLBACK_ID_PREFIX);
+}
+
+// Object keys in the share payload are always strings; TMDB ids must go back to
+// numbers to match the movie list, while fallback ids stay as they are.
+function decodeMovieId(key) {
+  return isFallbackId(key) ? key : Number(key);
+}
+
+// The readable slug drops any non-Latin characters, so two titles that differ
+// only outside [a-z0-9] would collapse onto the same id. A short hash of the
+// full title is appended to keep ids distinct while staying URL-friendly.
+function titleHash(title) {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = (hash * 31 + title.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function fallbackId(title) {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${FALLBACK_ID_PREFIX}${slug}-${titleHash(title)}`;
+}
+
+// Builds a movie in the same shape as fetchMovieDetails() so every consumer
+// (cards, sorting, sharing) can treat it like any other film. The TMDB-only
+// fields are present but empty rather than absent.
+function buildFallbackMovie({ title, posterUrl, releaseYear, durationMins }) {
+  return {
+    id: fallbackId(title),
+    title,
+    year: releaseYear ? String(releaseYear) : '',
+    runtime: durationMins ? `${durationMins}m` : null,
+    director: null,
+    overview: null,
+    posterUrl: posterUrl || null,
+    genres: [],
+    cast: [],
+    ratings: [],
+    overall: null,
+    trailerKey: null,
+    fallback: true,
+  };
+}
+
 function encodeData(ids) {
   const data = { f: ids };
+
+  // Fallback films can't be rehydrated from TMDB, so their details travel in
+  // the URL. Only the fields the card actually renders are carried.
+  const fallbacks = movies.value
+    .filter((m) => isFallbackId(m.id))
+    .filter((m) => ids.includes(m.id))
+    .map((m) => {
+      const entry = { i: m.id, t: m.title };
+      if (m.posterUrl) entry.p = m.posterUrl;
+      if (m.year) entry.y = m.year;
+      if (m.runtime) entry.r = m.runtime;
+      return entry;
+    });
+  if (fallbacks.length) {
+    data.x = fallbacks;
+  }
 
   // Preserve the sender's sort preference so the recipient sees the films
   // in the same order/state (default 'none' is left implicit to keep URLs short)
@@ -38,7 +109,26 @@ function encodeData(ids) {
     }
   }
 
-  return btoa(JSON.stringify(data));
+  return base64Encode(JSON.stringify(data));
+}
+
+// Film titles now travel in the payload, and btoa() throws on any character
+// above U+00FF (e.g. an em dash or CJK title), so the JSON is converted to
+// UTF-8 bytes first. Pure-ASCII payloads encode identically to plain btoa(),
+// which keeps previously shared links readable.
+function base64Encode(json) {
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function base64Decode(encoded) {
+  const binary = atob(encoded);
+  const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 function buildUrl(ids) {
@@ -48,7 +138,7 @@ function buildUrl(ids) {
 }
 
 function parseData(encoded) {
-  return JSON.parse(atob(decodeURIComponent(encoded)));
+  return JSON.parse(base64Decode(decodeURIComponent(encoded)));
 }
 
 function updateUrl() {
@@ -146,6 +236,9 @@ export function useComparison() {
   });
 
   async function addMovie(tmdbId) {
+    // Fallback films have no TMDB record to fetch — they are added directly
+    // via addFallbackMovie() or restored from the share payload.
+    if (isFallbackId(tmdbId)) return;
     if (movies.value.some((m) => m.id === tmdbId)) return;
     if (loadingIds.value.has(tmdbId)) return;
 
@@ -160,6 +253,15 @@ export function useComparison() {
       next.delete(tmdbId);
       loadingIds.value = next;
     }
+  }
+
+  // Adds a film using only what the cinema listings gave us, for when TMDB has
+  // no match. Returns the synthetic id so the caller can attach showtimes.
+  function addFallbackMovie(film) {
+    const movie = buildFallbackMovie(film);
+    if (movies.value.some((m) => m.id === movie.id)) return movie.id;
+    movies.value = [...movies.value, movie];
+    return movie.id;
   }
 
   function setShowtimes(tmdbId, showtimes) {
@@ -218,6 +320,22 @@ export function useComparison() {
 
   async function loadSharedData(data) {
     const ids = data.f || [];
+
+    // Restore fallback films from the embedded details first — addMovie() skips
+    // them, since there is no TMDB record behind their synthetic ids.
+    for (const entry of data.x || []) {
+      if (movies.value.some((m) => m.id === entry.i)) continue;
+      movies.value = [
+        ...movies.value,
+        {
+          ...buildFallbackMovie({ title: entry.t, posterUrl: entry.p || null }),
+          id: entry.i,
+          year: entry.y || '',
+          runtime: entry.r || null,
+        },
+      ];
+    }
+
     // Await all adds: addMovie appends each film when its detail fetch
     // resolves, i.e. in network-completion order, not the encoded order.
     await Promise.all(ids.map((id) => addMovie(id)));
@@ -272,7 +390,7 @@ export function useComparison() {
     // Build initial showtimes without booking links
     for (const [movieId, showtimes] of Object.entries(data.s)) {
       setShowtimes(
-        Number(movieId),
+        decodeMovieId(movieId),
         showtimes.map((st) => {
           const cinemaId = st.ci || null;
           const cinema = cinemaMap.get(cinemaId);
@@ -307,13 +425,14 @@ export function useComparison() {
         }
         // Patch booking links into existing showtimes
         for (const [movieId] of Object.entries(data.s)) {
-          const existing = movieShowtimes.value.get(Number(movieId));
+          const id = decodeMovieId(movieId);
+          const existing = movieShowtimes.value.get(id);
           if (!existing) continue;
           const patched = existing.map((st) => {
             const link = linkMap.get(`${st.cinemaId}::${st.time}`);
             return link ? { ...st, bookingLink: link } : st;
           });
-          setShowtimes(Number(movieId), patched);
+          setShowtimes(id, patched);
         }
       } catch {
         /* continue without booking links */
@@ -375,6 +494,7 @@ export function useComparison() {
     showtimesOnly,
     cinemaTitleMap,
     addMovie,
+    addFallbackMovie,
     removeMovie,
     moveMovie,
     reorderMovies,

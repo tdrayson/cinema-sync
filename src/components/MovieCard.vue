@@ -157,6 +157,11 @@ const synopsisExpanded = ref(false)
     <!-- Ratings -->
     <RatingDisplay :ratings="movie.ratings" :overall="movie.overall" />
 
+    <!-- Explains the missing score/ratings on films the cinema listed but TMDB didn't have -->
+    <p v-if="movie.fallback" class="text-[11px] text-ink-lighter border-t border-border pt-4 mt-4 leading-relaxed">
+      Showing cinema listing details only — no match found on TMDB, so ratings and cast are unavailable.
+    </p>
+
     <!-- Showtimes -->
     <div v-if="groupedShowtimes.length" class="border-t border-border pt-4 mt-4">
       <p class="text-[10px] font-semibold text-ink-lighter uppercase tracking-widest mb-3">Showtimes</p>

@@ -420,6 +420,9 @@ function addFilms() {
       filmMap.set(filmTitle, {
         name: filmTitle,
         releaseYear: film?.releaseYear || null,
+        // Carried so the film can still be shown if TMDB has no match
+        posterUrl: film?.posterUrl || null,
+        durationMins: film?.durationMins || null,
         showtimes: [],
       })
     }
