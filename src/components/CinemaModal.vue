@@ -16,6 +16,8 @@ const {
   afterTime,
   loadingCinemas,
   loadingFilms,
+  cinemasNotice,
+  filmsNotice,
   mergedFilms,
   availableChains,
   loadAllCinemas,
@@ -610,6 +612,7 @@ watch(showModal, async (val) => {
             </fieldset>
           </div>
 
+          <p v-if="cinemasNotice" role="status" class="px-5 py-2 text-xs text-accent border-b border-border shrink-0">{{ cinemasNotice }}</p>
           <div class="flex-1 overflow-y-auto min-h-0">
             <div v-if="loadingCinemas" class="px-5 py-8 text-center">
               <div class="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin mx-auto" />
@@ -677,6 +680,8 @@ watch(showModal, async (val) => {
             <DatePicker :model-value="selectedDate" @select="onDateSelect" />
             <TimePicker v-model="afterTime" />
           </div>
+
+          <p v-if="filmsNotice" role="status" class="px-5 py-2 text-xs text-accent border-b border-border shrink-0">{{ filmsNotice }}</p>
 
           <!-- Cinema filter -->
           <div v-if="selectedCinemas.length > 1 && !loadingFilms && mergedFilms.length" class="flex items-center gap-2 px-5 py-2.5 border-b border-border shrink-0">

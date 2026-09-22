@@ -9,6 +9,8 @@ const mergedFilms = ref([])
 const loadingCinemas = ref(false)
 const loadingFilms = ref(false)
 const showModal = ref(false)
+const cinemasNotice = ref('')
+const filmsNotice = ref('')
 
 watch(afterTime, (val) => {
   if (val) {
@@ -19,6 +21,22 @@ watch(afterTime, (val) => {
 })
 
 let cinemasLoaded = false
+
+/**
+ * Turns the API's errors[] into one short line naming the chains that failed.
+ * @param {string[]} errors raw messages, e.g. "Cineworld cinemas: 403" or "cw-073: 403"
+ * @returns {string} empty when there is nothing to report
+ */
+function describeErrors(errors = []) {
+  if (!errors.length) return ''
+  const chains = new Set()
+  for (const e of errors) {
+    if (/^cw-|cineworld/i.test(e)) chains.add('Cineworld')
+    else if (/^vue-|vue/i.test(e)) chains.add('Vue')
+  }
+  if (!chains.size) return 'Some listings could not be loaded right now.'
+  return `${[...chains].join(' and ')} listings are unavailable right now.`
+}
 
 export function useCinema() {
   const isActive = computed(() => selectedCinemas.value.length > 0)
@@ -31,11 +49,13 @@ export function useCinema() {
     if (cinemasLoaded) return
     loadingCinemas.value = true
     try {
-      const { cinemas: list } = await apiFetchCinemas()
+      const { cinemas: list, errors } = await apiFetchCinemas()
       cinemas.value = list
+      cinemasNotice.value = describeErrors(errors)
       cinemasLoaded = true
     } catch {
       cinemas.value = []
+      cinemasNotice.value = 'Cinemas could not be loaded right now.'
     } finally {
       loadingCinemas.value = false
     }
@@ -55,7 +75,8 @@ export function useCinema() {
     loadingFilms.value = true
     try {
       const ids = selectedCinemas.value.map(c => c.id)
-      const { films } = await apiFetchFilms(ids, selectedDate.value)
+      const { films, errors } = await apiFetchFilms(ids, selectedDate.value)
+      filmsNotice.value = describeErrors(errors)
 
       // Enrich cinemaName from local cinema list
       const cinemaMap = new Map(cinemas.value.map(c => [c.id, c.name]))
@@ -68,6 +89,7 @@ export function useCinema() {
       mergedFilms.value = films
     } catch {
       mergedFilms.value = []
+      filmsNotice.value = 'Films could not be loaded right now.'
     } finally {
       loadingFilms.value = false
     }
@@ -98,6 +120,7 @@ export function useCinema() {
   function clear() {
     selectedCinemas.value = []
     mergedFilms.value = []
+    filmsNotice.value = ''
   }
 
   return {
@@ -108,6 +131,8 @@ export function useCinema() {
     loadingCinemas,
     loadingFilms,
     showModal,
+    cinemasNotice,
+    filmsNotice,
     isActive,
     mergedFilms,
     availableChains,
