@@ -50,7 +50,6 @@ cp .env.example .env
 ```
 VITE_TMDB_API_KEY=your_tmdb_key
 VITE_OMDB_API_KEY=your_omdb_key
-VITE_CINEMA_PROXY_URL=your_worker_url
 ```
 
 ### Development
