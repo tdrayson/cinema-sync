@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_CINEMA_PROXY_URL
+const BASE_URL = 'https://api.tinkr.to/e/cinema-sync'
 const cache = new Map()
 
 async function cachedFetch(url) {
